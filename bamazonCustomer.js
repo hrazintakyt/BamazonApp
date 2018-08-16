@@ -1,20 +1,23 @@
 var mysql = require('mysql');
 var inquirer = require('inquirer');
-
+var table = require("cli-table");
 var connection = mysql.createConnection({
 
     "username": "root",
     "password": "root",
     "database": "bamazon",
-    "host": "127.0.0.1",
     "dialect": "mysql",
-    "dialectOptions": {
-        "socketPath": "/Applications/MAMP/tmp/mysql/mysql.sock"
-    }
-})
+    "port": 3306,
+    "socketPath": "/Applications/MAMP/tmp/mysql/mysql.sock"
+
+});
+
+
+
 
 console.log("Here is our selection of Items");
 console.log("------------------------------");
+
 
 
 connection.connect(function(err) {
@@ -26,10 +29,10 @@ connection.connect(function(err) {
         askForPurchase(result);
     });
 
-    function askForPurchase(items) {
+    function askForPurchase(result) {
         inquirer.prompt([{
-            type: "input"
-            name: "pick"
+            type: "input",
+            name: "pick",
             message: "Pick what you wanna buy"
         }]).then(function(val) {
             var userPick = parseInt(val.pick)
@@ -45,11 +48,16 @@ connection.connect(function(err) {
     }
     //ask how many should be bought 
     function askForQuantity(product) {
-        inquirer.prompt([
-            type: "input",
+        inquirer.prompt([{
             name: "quantity",
-            message: "How many of them do you want?"
-        ]).then(function(val) {
+            message: "How many of them do you want?",
+            validate: function(val) {
+                if (isNaN(val) === false && parseInt(val) > 0 && parseInt(val) <= 100) {
+                    return true;
+                }
+                return false;
+            }
+        }]).then(function(val) {
             var quantity = parseInt(val.quantity);
             //check if there's enough
             if (quantity > product.stock_quantity) {
@@ -61,7 +69,7 @@ connection.connect(function(err) {
         });
     }
 
-    function buyItem(product quantity) {
+    function buyItem(product, quantity) {
         connection.query("UPDATE products SET stock_quantity = stock_quantity - ? WHERE item_id = ?", [quantity, product.item_id],
             function(err, result) {
                 console.log("You bought " + quantity + " of the " + product.product_name + " product.");
